@@ -4,6 +4,10 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
+import '../models/region.dart';
+import '../models/category.dart';
+import 'package:provider/provider.dart';
+import '../services/user_provider.dart';
 
 class AddAdvertisementScreen extends StatefulWidget {
   const AddAdvertisementScreen({super.key});
@@ -29,15 +33,48 @@ class _AddAdvertisementScreenState extends State<AddAdvertisementScreen> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
+  List<Category> _categories = [];
+  List<Region> _regions = [];
 
-  String? _selectedCategory;
+  Category? _selectedCategory;
+  Region? _selectedRegion;
+  @override
+  void initState() {
+    super.initState();
+    fetchCategoriesAndRegions();
+  }
 
-  final List<String> _categories = [
-    'Electronics',
-    'Clothes',
-    'Transport',
-    'Real Estate',
-  ];
+  Future<void> fetchCategoriesAndRegions() async {
+    try {
+      final categoryResponse = await http.get(
+        Uri.parse('http://10.0.2.2:7210/api/Categories'),
+      );
+      final regionResponse = await http.get(
+        Uri.parse('http://10.0.2.2:7210/api/Regions'),
+      );
+
+      if (categoryResponse.statusCode == 200 &&
+          regionResponse.statusCode == 200) {
+        final categoryList = jsonDecode(categoryResponse.body) as List;
+        final regionList = jsonDecode(regionResponse.body) as List;
+
+        setState(() {
+          _categories =
+              categoryList.map((json) => Category.fromJson(json)).toList();
+          _regions = regionList.map((json) => Region.fromJson(json)).toList();
+        });
+      } else {
+        throw Exception('Failed to fetch data');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading data: $e')));
+      }
+    }
+  }
+
   Future<void> _submitAdvertisement() async {
     if (_formKey.currentState!.validate()) {
       final uri = Uri.parse(
@@ -49,9 +86,22 @@ class _AddAdvertisementScreenState extends State<AddAdvertisementScreen> {
       request.fields['title'] = _titleController.text;
       request.fields['description'] = _descriptionController.text;
       request.fields['price'] = _priceController.text;
-      request.fields['categoryId'] = '1'; // TODO: dynamic
-      request.fields['regionId'] = '1'; // TODO: dynamic
-      request.fields['sellerId'] = '1'; // TODO: залогінений користувач
+      request.fields['categoryId'] = _selectedCategory!.id.toString();
+      request.fields['regionId'] = _selectedRegion!.id.toString();
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final user = userProvider.user;
+
+      if (user?.id == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('User not logged in')));
+        return;
+      }
+
+      request.fields['sellerId'] =
+          user!.id.toString(); // ← перетвори int → String
+
+      // TODO: залогінений користувач
       // Add other fields as needed (e.g., categoryId, regionId, sellerId)
 
       final imageFile =
@@ -162,19 +212,33 @@ class _AddAdvertisementScreenState extends State<AddAdvertisementScreen> {
                         value == null || value.isEmpty ? 'Enter price' : null,
               ),
               const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
+              DropdownButtonFormField<Category>(
                 value: _selectedCategory,
                 decoration: const InputDecoration(labelText: 'Category'),
                 items:
                     _categories.map((category) {
-                      return DropdownMenuItem<String>(
+                      return DropdownMenuItem<Category>(
                         value: category,
-                        child: Text(category),
+                        child: Text(category.name),
                       );
                     }).toList(),
                 onChanged: (value) => setState(() => _selectedCategory = value),
                 validator: (value) => value == null ? 'Select category' : null,
               ),
+              DropdownButtonFormField<Region>(
+                value: _selectedRegion,
+                decoration: const InputDecoration(labelText: 'Region'),
+                items:
+                    _regions.map((region) {
+                      return DropdownMenuItem<Region>(
+                        value: region,
+                        child: Text(region.name),
+                      );
+                    }).toList(),
+                onChanged: (value) => setState(() => _selectedRegion = value),
+                validator: (value) => value == null ? 'Select region' : null,
+              ),
+
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _submitAdvertisement,

@@ -32,6 +32,19 @@ class AdvertisementService {
     }
   }
 
+  Future<Advertisement> fetchAdvertisement(int id) async {
+    final response = await http.get(Uri.parse('$baseUrl/advertisements/$id'));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return Advertisement.fromJson(data);
+    } else if (response.statusCode == 404) {
+      throw Exception('Advertisement with ID $id not found.');
+    } else {
+      throw Exception('Failed to load advertisement: ${response.statusCode}');
+    }
+  }
+
   // Fetch region name by ID
   Future<String> fetchRegionNameById(int regionId) async {
     final response = await http.get(Uri.parse('$baseUrl/regions/$regionId'));

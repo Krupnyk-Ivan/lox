@@ -6,6 +6,7 @@ import '../screens/profile_screen.dart';
 import 'package:provider/provider.dart';
 import '../services/user_provider.dart';
 import '../screens/login_screen.dart';
+import '../screens/advertisement_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,6 +26,12 @@ class _HomeScreenState extends State<HomeScreen> {
     futureAds = AdvertisementService().fetchAdvertisements();
   }
 
+  void _refreshAdvertisements() {
+    setState(() {
+      futureAds = AdvertisementService().fetchAdvertisements();
+    });
+  }
+
   Widget _buildAdList() {
     return Column(
       children: [
@@ -41,6 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
               fillColor: Colors.grey[200],
             ),
             onChanged: (value) {
+              _refreshAdvertisements();
               setState(() {
                 _searchQuery = value.toLowerCase();
               });
@@ -125,7 +133,15 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               isThreeLine: true,
                               onTap: () {
-                                // Navigate to detailed ad screen
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) => AdvertisementDetailScreen(
+                                          advertisementId: ad.id!,
+                                        ), // Передаємо ID оголошення
+                                  ),
+                                );
                               },
                             ),
                           );

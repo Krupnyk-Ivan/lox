@@ -28,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       Provider.of<UserProvider>(context, listen: false).setUser(
         UserModel(
+          id: userData['id'],
           name: userData['username'],
           email: userData['email'],
           userType: userType,

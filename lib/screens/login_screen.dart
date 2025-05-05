@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart'; // Make sure this import is correct
+import 'package:provider/provider.dart';
+import '../services/user_provider.dart';
+import '../models/user_model.dart';
+import '../screens/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,13 +22,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final response = await AuthService().login(username, password);
-      if (response['userType'] == 'Buyer') {
-        // Navigate to Buyer Home Screen
-        Navigator.pushReplacementNamed(context, '/buyer_home');
-      } else if (response['userType'] == 'Seller') {
-        // Navigate to Seller Home Screen
-        Navigator.pushReplacementNamed(context, '/seller_home');
-      }
+
+      final userData = response['user'];
+      final userType = response['userType'];
+
+      Provider.of<UserProvider>(context, listen: false).setUser(
+        UserModel(
+          name: userData['username'],
+          email: userData['email'],
+          userType: userType,
+        ),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
     } catch (error) {
       // Show error message if login fails
       ScaffoldMessenger.of(

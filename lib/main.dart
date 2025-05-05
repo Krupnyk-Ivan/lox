@@ -1,11 +1,16 @@
-// lib/main.dart
 import 'package:flutter/material.dart';
-import 'screens/login_screen.dart';
-import 'screens/register_screen.dart';
+import 'package:provider/provider.dart';
+import 'services/user_provider.dart';
 import 'screens/home_screen.dart';
+import 'screens/add_advertisement_screen.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [ChangeNotifierProvider(create: (_) => UserProvider())],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -14,14 +19,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter App with Logging',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      initialRoute: '/',
+      title: 'Ad Portal',
+      theme: ThemeData(primarySwatch: Colors.green),
+      home: const HomeScreen(),
       routes: {
-        '/': (context) => const LoginScreen(), // Default to login screen
-        '/register': (context) => const RegisterScreen(),
-        '/buyer_home': (context) => const HomeScreen(),
-        '/seller_home': (context) => const HomeScreen(),
+        '/addAdvertisement': (context) => const AddAdvertisementScreen(),
       },
     );
   }

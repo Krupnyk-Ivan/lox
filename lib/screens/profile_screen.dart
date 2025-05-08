@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'add_advertisement_screen.dart';
+import 'analytics_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   final String name;
@@ -70,9 +71,43 @@ class ProfileScreen extends StatelessWidget {
                     Navigator.pushNamed(context, '/addAdvertisement');
                   },
                   icon: const Icon(Icons.add),
-                  label: const Text('Add Advertisement'),
+                  label: const Text('Додати оголошення'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: const Color.fromARGB(255, 239, 239, 239),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 16),
+
+            if (usertype == 'Seller')
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/stats');
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Статистика всіх оголошеннь'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(255, 250, 249, 249),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 20),
+
+            if (usertype == 'Seller')
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/d');
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Скачати  оголошення'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(255, 250, 249, 249),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                 ),

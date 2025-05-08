@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:lox/screens/register_screen.dart';
 import 'package:provider/provider.dart';
 import 'services/user_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/add_advertisement_screen.dart';
+import './screens/analytics_screen.dart';
+import './screens/all_advertisements_screen.dart';
 
 void main() {
   runApp(
@@ -24,6 +27,9 @@ class MyApp extends StatelessWidget {
       home: const HomeScreen(),
       routes: {
         '/addAdvertisement': (context) => const AddAdvertisementScreen(),
+        '/register': (context) => const RegisterScreen(),
+        '/stats': (context) => const AnalyticsScreen(),
+        '/d': (context) => const AllAdvertisementsScreen(),
       },
     );
   }

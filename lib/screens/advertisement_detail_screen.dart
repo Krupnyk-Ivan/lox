@@ -1,8 +1,14 @@
 // screens/advertisement_detail_screen.dart
 import 'package:flutter/material.dart';
-import '../models/advertisement.dart'; // Переконайтеся, що шлях правильний
-import '../services/advertisement_service.dart'; // Переконайтеся, що шлях правильний
+import '../models/advertisement.dart';
+import '../services/advertisement_service.dart';
 import 'dart:convert';
+import 'package:provider/provider.dart';
+import '../services/user_provider.dart';
+import '../models/order.dart';
+import '../screens/edit_advertisement_screen.dart';
+
+import '../models/feedback.dart';
 
 class AdvertisementDetailScreen extends StatefulWidget {
   final int
@@ -19,12 +25,17 @@ class _AdvertisementDetailScreenState extends State<AdvertisementDetailScreen> {
   late Future<Advertisement> _futureAdvertisement;
   String _categoryName = 'Loading...';
   String _regionName = 'Loading...';
+  bool _isCreatingOrder = false;
+  late Future<List<FeedbackModel>> _futureFeedbacks;
 
   @override
   void initState() {
     super.initState();
     _futureAdvertisement =
         _fetchAdvertisementDetails(); // Завантажуємо деталі при ініціалізації
+    _futureFeedbacks = AdvertisementService().fetchFeedbacks(
+      widget.advertisementId,
+    );
   }
 
   Future<Advertisement> _fetchAdvertisementDetails() async {
@@ -51,8 +62,67 @@ class _AdvertisementDetailScreenState extends State<AdvertisementDetailScreen> {
     }
   }
 
+  void _createOrder(Advertisement ad) async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final currentUser = userProvider.user;
+
+    if (currentUser == null || currentUser.id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Будь ласка, увійдіть, щоб здійснити покупку.'),
+        ),
+      );
+      return;
+    }
+
+    if (ad.sellerId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Помилка: Продавець оголошення не визначено.'),
+        ),
+      );
+      return;
+    }
+
+    final orderData = Order(
+      advertisementId: ad.id!,
+      buyerId: currentUser.id!,
+      sellerId: ad.sellerId!,
+      finalPrice: ad.price,
+      orderStatus: 'Pending',
+      // No need to manually set the orderStatus, it defaults to 'Pending' in the Order class
+    );
+
+    setState(() {
+      _isCreatingOrder = true;
+    });
+
+    try {
+      final createdOrder = await AdvertisementService().createOrder(orderData);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Замовлення успішно створено! ID: ${createdOrder.id}'),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Помилка створення замовлення: ${e.toString()}'),
+        ),
+      );
+      print('Error creating order: $e');
+    } finally {
+      setState(() {
+        _isCreatingOrder = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+    final currentUser = userProvider.user;
     return Scaffold(
       appBar: AppBar(title: const Text('Деталі оголошення')),
       body: FutureBuilder<Advertisement>(
@@ -178,8 +248,85 @@ class _AdvertisementDetailScreenState extends State<AdvertisementDetailScreen> {
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 20),
+                const SizedBox(height: 20),
+                if (currentUser?.id == ad.sellerId)
+                  Center(
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.edit),
+                      label: const Text('Редагувати'),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => EditAdvertisementScreen(
+                                  advertisementId: ad.id,
+                                ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                // Кнопка "Купити"
+                if (currentUser?.id !=
+                    ad.sellerId) // Не показуємо кнопку, якщо це власне оголошення
+                  Center(
+                    child:
+                        _isCreatingOrder
+                            ? const CircularProgressIndicator() // Індикатор завантаження
+                            : ElevatedButton(
+                              onPressed:
+                                  () => _createOrder(
+                                    ad,
+                                  ), // Викликаємо метод створення замовлення
+                              child: const Text('Купити'),
+                            ),
+                  ),
+                const SizedBox(height: 20),
+                const SizedBox(height: 20),
+                Text(
+                  'Відгуки:',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                FutureBuilder<List<FeedbackModel>>(
+                  future: _futureFeedbacks,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Text(
+                        'Помилка завантаження відгуків: ${snapshot.error}',
+                      );
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Text('Ще немає відгуків.');
+                    }
 
-                // TODO: Додати інформацію про продавця (якщо доступно в моделі Advertisement або завантажується окремо)
+                    final feedbacks = snapshot.data!;
+
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: feedbacks.length,
+                      itemBuilder: (context, index) {
+                        final feedback = feedbacks[index];
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 6),
+                          child: ListTile(
+                            leading: const Icon(Icons.comment),
+                            title: Text(feedback.commentText.toString()),
+                            subtitle: Text(
+                              'Дата: ${feedback.createdDate}',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
               ],
             ),
           );

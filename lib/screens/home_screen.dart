@@ -39,7 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> loadRecommendations() async {
     try {
-      final userProvider = Provider.of<UserProvider>(context);
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
       final user = userProvider.user;
       final buyerId = user!.id; // Замінити на реальний ID покупця
       recommendedAds = await AdvertisementService().fetchRecommendations(
